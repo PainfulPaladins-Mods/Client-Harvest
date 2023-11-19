@@ -11,7 +11,7 @@
 		"homepage": "https://github.com/PainfulPaladins-Mods/Client-Harvest",
 		"sources": "https://github.com/PainfulPaladins-Mods/Client-Harvest"
 	},
-	"license": "CC0-1.0",
+	"license": "MIT",
 	"environment": "*",
 	"entrypoints": {
 		"client": [
