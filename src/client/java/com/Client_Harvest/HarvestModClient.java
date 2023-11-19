@@ -18,15 +18,11 @@ import net.minecraft.world.World;
 
 
 public class HarvestModClient implements ClientModInitializer {
+    public static MinecraftClient client;
     @Override
     public void onInitializeClient() {
-        ClientTickEvents.END_CLIENT_TICK.register(this::clientTickEvent);
+        client = MinecraftClient.getInstance();
         UseBlockCallback.EVENT.register(this::onBlockUse);
-    }
-
-    public static MinecraftClient client;
-    private void clientTickEvent(MinecraftClient mc) {
-        client = mc;
     }
 
     private static boolean isMature(BlockState state) {
@@ -41,9 +37,6 @@ public class HarvestModClient implements ClientModInitializer {
         return false;
     }
     public ActionResult onBlockUse(PlayerEntity player, World world, Hand hand, BlockHitResult hitResult) {
-        return onBlockUse(player, world, hand, hitResult, true);
-    }
-    private ActionResult onBlockUse(PlayerEntity player, World world, Hand hand, BlockHitResult hitResult, boolean initialCall) {
         BlockState state = world.getBlockState(hitResult.getBlockPos());
         if (!isMature(state)) return ActionResult.PASS;
         ClientPlayerInteractionManager interaction = new ClientPlayerInteractionManager(client, client.getNetworkHandler());
