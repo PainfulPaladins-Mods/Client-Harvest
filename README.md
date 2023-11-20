@@ -1,9 +1,3 @@
-# Fabric Example Mod
+# ClientHarvest
 
-## Setup
-
-For setup instructions please see the [fabric wiki page](https://fabricmc.net/wiki/tutorial:setup) that relates to the IDE that you are using.
-
-## License
-
-This template is available under the CC0 license. Feel free to learn from it and incorporate it in your own projects.
+Harvest seeds with ease by pressing right click! If you are holding seeds the crops should be replanted too! The mod works even if the mod is not installed on the server, thus there is no server side version
