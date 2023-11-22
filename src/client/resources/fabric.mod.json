@@ -8,8 +8,9 @@
 		"PainfulPaladins"
 	],
 	"contact": {
-		"homepage": "https://github.com/PainfulPaladins-Mods/Client-Harvest",
-		"sources": "https://github.com/PainfulPaladins-Mods/Client-Harvest"
+		"homepage": "https://modrinth.com/mod/clientharvest/",
+		"sources": "https://github.com/PainfulPaladins-Mods/Client-Harvest",
+		"issues": "https://github.com/PainfulPaladins-Mods/Client-Harvest/issues"
 	},
 	"license": "MIT",
 	"environment": "*",
@@ -20,11 +21,7 @@
 	},
 	"depends": {
 		"fabricloader": ">=0.14.22",
-		"minecraft": ">=1.19.2",
-		"java": ">=17",
+		"minecraft": "*",
 		"fabric-api": "*"
-	},
-	"suggests": {
-		"another-mod": "*"
 	}
 }
