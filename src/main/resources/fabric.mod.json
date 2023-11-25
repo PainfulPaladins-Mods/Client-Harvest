@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "clientharvest",
+  "version": "${version}",
+  "name": "ClientHarvest",
+  "description": "Right Click Harvest on client side! Replants the seeds only if you are holding them in your main hand.",
+  "authors": [
+    "PainfulPaladins"
+  ],
+  "contact": {
+    "homepage": "https://modrinth.com/mod/clientharvest/",
+    "sources": "https://github.com/PainfulPaladins-Mods/Client-Harvest",
+    "issues": "https://github.com/PainfulPaladins-Mods/Client-Harvest/issues"
+  },
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "org.clientharvest.HarvestModClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
