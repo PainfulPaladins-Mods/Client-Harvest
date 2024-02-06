@@ -1,6 +1,6 @@
 # ClientHarvest
 
-ClientHarvest aims to be the clientside version of [RightClickHarvest](https://modrinth.com/mod/rightclickharvest)
+ClientHarvest aims to be the clientside version of [RightClickHarvest](https://modrinth.com/mod/rightclickharvest) and is based on it.
 
 ## Usage
 
