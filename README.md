@@ -1,6 +1,7 @@
 # ClientHarvest
 
 ClientHarvest aims to be the clientside version of [RightClickHarvest](https://modrinth.com/mod/rightclickharvest) and is based on it.
+Harvest crops with ease, on any server you like!
 
 ## Usage
 
