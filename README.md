@@ -20,5 +20,5 @@ Works for:
 - [x] make basic feature 
 - [x] make icon
 - [x] make README.md Better
-- [ ] port it to curseforge
+- [x] port it to curseforge
 - [ ] make forge port
