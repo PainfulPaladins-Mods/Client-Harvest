@@ -14,7 +14,7 @@ Works for:
 - Beetroot
 
 <a href="https://modrinth.com/mod/clientharvest"><img alt="Download on Modrinth" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/available/modrinth_vector.svg"></a>
-
+<a href="https://www.curseforge.com/minecraft/mc-mods/clientharvest"><img alt="Download on CurseForge" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges/assets/cozy/available/curseforge_vector.svg"></a>
 ### Roadmap
 
 - [x] make basic feature 
