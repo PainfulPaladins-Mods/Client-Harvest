@@ -2,7 +2,6 @@ package org.clientharvest;
 
 
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.CocoaBlock;
@@ -11,10 +10,14 @@ import net.minecraft.block.NetherWartBlock;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.world.World;
+
+import java.io.Console;
 
 
 public class HarvestModClient implements ClientModInitializer {
@@ -36,11 +39,37 @@ public class HarvestModClient implements ClientModInitializer {
 
         return false;
     }
+
+
+
+    public static int locateSlot(MinecraftClient client, Item item) {
+        for (int i = 0; i < 9; i++) {
+            ItemStack slot = client.player.getInventory().getStack(i);
+            Item slotItem = slot.getItem();
+            if (item == slotItem) return i;
+        }
+        return -1;
+    }
+
+    public static void switchToItem(MinecraftClient client, Item item){
+        int slot = locateSlot(client,item);
+        if (slot == -1) return;
+
+        client.player.getInventory().selectedSlot = slot;
+        System.out.println(slot);
+
+    }
+
     public ActionResult onBlockUse(PlayerEntity player, World world, Hand hand, BlockHitResult hitResult) {
         BlockState state = world.getBlockState(hitResult.getBlockPos());
+        int lastSlot = client.player.getInventory().selectedSlot;
         if (!isMature(state)) return ActionResult.PASS;
-        ClientPlayerInteractionManager interaction = new ClientPlayerInteractionManager(client, client.getNetworkHandler());
+        switchToItem(client,state.getBlock().asItem());
+        client.tick();
+        ClientPlayerInteractionManager interaction = client.interactionManager;
         interaction.attackBlock(hitResult.getBlockPos(),hitResult.getSide());
+
+        client.player.getInventory().selectedSlot = lastSlot;
         return ActionResult.SUCCESS;
     }
 }
