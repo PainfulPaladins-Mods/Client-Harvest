@@ -17,8 +17,6 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.world.World;
 
-import java.io.Console;
-
 
 public class HarvestModClient implements ClientModInitializer {
     public static MinecraftClient client;
@@ -51,21 +49,21 @@ public class HarvestModClient implements ClientModInitializer {
         return -1;
     }
 
-    public static void switchToItem(MinecraftClient client, Item item){
+    public static ActionResult switchToItem(MinecraftClient client, Item item){
         int slot = locateSlot(client,item);
-        if (slot == -1) return;
-
+        if (slot == -1) return ActionResult.FAIL;
+        if (client.player.getInventory().selectedSlot == slot) return ActionResult.PASS;
         client.player.getInventory().selectedSlot = slot;
         System.out.println(slot);
 
+        return ActionResult.SUCCESS;
     }
 
     public ActionResult onBlockUse(PlayerEntity player, World world, Hand hand, BlockHitResult hitResult) {
         BlockState state = world.getBlockState(hitResult.getBlockPos());
         int lastSlot = client.player.getInventory().selectedSlot;
         if (!isMature(state)) return ActionResult.PASS;
-        switchToItem(client,state.getBlock().asItem());
-        client.tick();
+        if (switchToItem(client,state.getBlock().asItem()) == ActionResult.SUCCESS) client.tick();
         ClientPlayerInteractionManager interaction = client.interactionManager;
         interaction.attackBlock(hitResult.getBlockPos(),hitResult.getSide());
 
