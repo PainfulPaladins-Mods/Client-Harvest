@@ -35,7 +35,7 @@ public class HarvestModClient implements ClientModInitializer {
         public boolean enabled = true;
     }
 
-    public final KeyBinding.Category category = KeyBinding.Category.create(Identifier.of("categories", "clientharvest"));
+    public final KeyBinding.Category category = KeyBinding.Category.create(Identifier.of("clientharvest", "general"));
 
     @Override
     public void onInitializeClient() {
