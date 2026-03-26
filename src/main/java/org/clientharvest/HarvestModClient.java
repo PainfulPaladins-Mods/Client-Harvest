@@ -1,116 +1,129 @@
 package org.clientharvest;
+import net.minecraft.world.level.block.entity.vault.VaultBlockEntity;
+import org.clientharvest.ClientHarvestConfig;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.CocoaBlock;
-import net.minecraft.block.CropBlock;
-import net.minecraft.block.NetherWartBlock;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.world.World;
-import net.minecraft.text.Text;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.CocoaBlock;
+import net.minecraft.world.level.block.CropBlock;
+import net.minecraft.world.level.block.NetherWartBlock;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.level.Level;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.phys.Vec3;
 
 import org.lwjgl.glfw.GLFW;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 public class HarvestModClient implements ClientModInitializer {
-    public static MinecraftClient client;
-    public static boolean enabled = true;
-    private static KeyBinding toggleKey;
+    public static Minecraft client;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final File CONFIG_FILE = new File("config/clientharvest.json");
-    public static class Config {
-        public boolean enabled = true;
-    }
 
-    public final KeyBinding.Category category = KeyBinding.Category.create(Identifier.of("clientharvest", "general"));
+    private int prevslot = 0;
+    private BlockPos pendingPos = null;
+    private Direction pendingFace = null;
+    public final KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("clientharvest", "general"));
 
     @Override
     public void onInitializeClient() {
-        client = MinecraftClient.getInstance();
-        loadConfig();
+        client = Minecraft.getInstance();
+
         UseBlockCallback.EVENT.register(this::onBlockUse);
-        toggleKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.clientharvest.toggle",
-                GLFW.GLFW_KEY_G,
-                category
-        ));
+        KeyMapping toggleKey = (KeyMapping) KeyMappingHelper.registerKeyMapping(
+                new KeyMapping(
+                        "key.clientharvest.toggle",
+                        GLFW.GLFW_KEY_G,
+                        category
+                )
+        );
+
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            while (toggleKey.wasPressed()) {
-                enabled = !enabled;
-                saveConfig();
+            while (toggleKey.consumeClick()) {
+                ClientHarvestConfig.YaclConfig config = ClientHarvestConfig.ConfigManager.getConfig();
+                config.Enabled = !config.Enabled;
+                ClientHarvestConfig.ConfigManager.save();
                 if (client.player != null) {
-                    client.inGameHud.setOverlayMessage(
-                            Text.literal("[Client Harvest] " + (enabled ? "ON" : "OFF")),
+                    client.gui.setOverlayMessage(
+                            Component.literal("[Client Harvest] " + (ClientHarvestConfig.ConfigManager.getConfig().Enabled ? "ON" : "OFF")),
                             false
                     );
                 }
             }
+            clientTick();
         });
     }
 
     private static boolean isMature(BlockState state) {
         if (state.getBlock() instanceof CocoaBlock) {
-            return state.get(CocoaBlock.AGE) >= CocoaBlock.MAX_AGE;
+            return state.getValue(CocoaBlock.AGE) >= CocoaBlock.MAX_AGE;
         } else if (state.getBlock() instanceof CropBlock cropBlock) {
-            return cropBlock.isMature(state);
+            return cropBlock.isMaxAge(state);
         } else if (state.getBlock() instanceof NetherWartBlock) {
-            return state.get(NetherWartBlock.AGE) >= 3;
+            return state.getValue(NetherWartBlock.AGE) >= 3;
         }
         return false;
     }
 
-    public ActionResult onBlockUse(PlayerEntity player, World world, Hand hand, BlockHitResult hitResult) {
-        if (!enabled) return ActionResult.PASS;
-        if (client.interactionManager == null) return ActionResult.PASS;
-        BlockState state = world.getBlockState(hitResult.getBlockPos());
-        if (!isMature(state)) return ActionResult.PASS;
-        client.interactionManager.attackBlock(
-                hitResult.getBlockPos(),
-                hitResult.getSide()
+    public void clientTick() {
+        if (pendingPos == null) return;
+        if (client.gameMode == null || client.player == null) return;
+        BlockHitResult placeHit = new BlockHitResult(
+                Vec3.atCenterOf(pendingPos),
+                pendingFace,
+                pendingPos,
+                false
         );
-        return ActionResult.SUCCESS;
+        client.gameMode.useItemOn(
+                client.player,
+                InteractionHand.MAIN_HAND,
+                placeHit
+        );
+        pendingPos = null;
+        if (ClientHarvestConfig.ConfigManager.getConfig().BackSlot) {
+            client.player.getInventory().setSelectedSlot(prevslot);
+        };
     }
 
-    private static void loadConfig() {
-        try {
-            if (!CONFIG_FILE.exists()) {
-                saveConfig();
-                return;
-            }
-            FileReader reader = new FileReader(CONFIG_FILE);
-            Config config = GSON.fromJson(reader, Config.class);
-            reader.close();
-            if (config != null) {
-                enabled = config.enabled;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+    public InteractionResult onBlockUse(Player player, Level level, InteractionHand hand, BlockHitResult hitResult) {
+        if (!level.isClientSide()) return InteractionResult.PASS;
+        if (!ClientHarvestConfig.ConfigManager.getConfig().Enabled) return InteractionResult.PASS;
+        if (client.gameMode == null) return InteractionResult.PASS;
 
-    private static void saveConfig() {
-        try {
-            CONFIG_FILE.getParentFile().mkdirs();
-            Config config = new Config();
-            config.enabled = enabled;
-            FileWriter writer = new FileWriter(CONFIG_FILE);
-            GSON.toJson(config, writer);
-            writer.close();
-        } catch (Exception e) {
-            e.printStackTrace();
+        if (hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
+        BlockPos pos = hitResult.getBlockPos();
+        BlockState state = level.getBlockState(pos);
+        if (!isMature(state)) return InteractionResult.PASS;
+
+        prevslot = player.getInventory().getSelectedSlot();
+        ItemStack placeItem = new ItemStack(state.getBlock().asItem());
+        if (player.getMainHandItem().getItem() != placeItem.getItem()) {
+            for (int i = 0; i < 9; i++) {
+                ItemStack stack = player.getInventory().getItem(i);
+                if (!stack.isEmpty() && stack.getItem() == placeItem.getItem()) {
+                    player.getInventory().setSelectedSlot(i);
+                    break;
+                }
+            }
         }
+
+        client.gameMode.startDestroyBlock(pos, hitResult.getDirection());
+        pendingPos = pos;
+        pendingFace = hitResult.getDirection();
+        return InteractionResult.CONSUME;
     }
 }
