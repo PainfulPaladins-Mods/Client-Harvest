@@ -1,4 +1,6 @@
 package org.clientharvest;
+import net.minecraft.world.level.block.entity.vault.VaultBlockEntity;
+import org.clientharvest.ClientHarvestConfig;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -6,7 +8,6 @@ import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.world.entity.animal.allay.Allay;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.CocoaBlock;
@@ -21,25 +22,17 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.level.Level;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-
 import net.minecraft.world.phys.Vec3;
+
 import org.lwjgl.glfw.GLFW;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 public class HarvestModClient implements ClientModInitializer {
     public static Minecraft client;
-    public static boolean enabled = true;
-    public static boolean backslot = true;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final File CONFIG_FILE = new File("config/clientharvest.json");
-    public static class Config {
-        public boolean enabled = true;
-        public boolean backslot = true;
-    }
 
     private int prevslot = 0;
     private BlockPos pendingPos = null;
@@ -49,7 +42,7 @@ public class HarvestModClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         client = Minecraft.getInstance();
-        loadConfig();
+
         UseBlockCallback.EVENT.register(this::onBlockUse);
         KeyMapping toggleKey = (KeyMapping) KeyMappingHelper.registerKeyMapping(
                 new KeyMapping(
@@ -61,11 +54,12 @@ public class HarvestModClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (toggleKey.consumeClick()) {
-                enabled = !enabled;
-                saveConfig();
+                ClientHarvestConfig.YaclConfig config = ClientHarvestConfig.ConfigManager.getConfig();
+                config.Enabled = !config.Enabled;
+                ClientHarvestConfig.ConfigManager.save();
                 if (client.player != null) {
                     client.gui.setOverlayMessage(
-                            Component.literal("[Client Harvest] " + (enabled ? "ON" : "OFF")),
+                            Component.literal("[Client Harvest] " + (ClientHarvestConfig.ConfigManager.getConfig().Enabled ? "ON" : "OFF")),
                             false
                     );
                 }
@@ -100,12 +94,14 @@ public class HarvestModClient implements ClientModInitializer {
                 placeHit
         );
         pendingPos = null;
-        if (backslot) client.player.getInventory().setSelectedSlot(prevslot);
+        if (ClientHarvestConfig.ConfigManager.getConfig().BackSlot) {
+            client.player.getInventory().setSelectedSlot(prevslot);
+        };
     }
 
     public InteractionResult onBlockUse(Player player, Level level, InteractionHand hand, BlockHitResult hitResult) {
         if (!level.isClientSide()) return InteractionResult.PASS;
-        if (!enabled) return InteractionResult.PASS;
+        if (!ClientHarvestConfig.ConfigManager.getConfig().Enabled) return InteractionResult.PASS;
         if (client.gameMode == null) return InteractionResult.PASS;
 
         if (hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
@@ -129,37 +125,5 @@ public class HarvestModClient implements ClientModInitializer {
         pendingPos = pos;
         pendingFace = hitResult.getDirection();
         return InteractionResult.CONSUME;
-    }
-
-    private static void loadConfig() {
-        try {
-            if (!CONFIG_FILE.exists()) {
-                saveConfig();
-                return;
-            }
-            FileReader reader = new FileReader(CONFIG_FILE);
-            Config config = GSON.fromJson(reader, Config.class);
-            reader.close();
-            if (config != null) {
-                enabled = config.enabled;
-                backslot = config.backslot;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static void saveConfig() {
-        try {
-            CONFIG_FILE.getParentFile().mkdirs();
-            Config config = new Config();
-            config.enabled = enabled;
-            config.backslot = backslot;
-            FileWriter writer = new FileWriter(CONFIG_FILE);
-            GSON.toJson(config, writer);
-            writer.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 }
