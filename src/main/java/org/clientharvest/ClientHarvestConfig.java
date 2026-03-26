@@ -22,7 +22,7 @@ public class ClientHarvestConfig {
 
     public static class ConfigManager {
         private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-        private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("elytrahud.json");
+        private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("clientharvest.json");
         private static YaclConfig _config = null;
 
         public static YaclConfig getConfig() {
