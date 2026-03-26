@@ -4,6 +4,9 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.CocoaBlock;
 import net.minecraft.world.level.block.CropBlock;
@@ -34,6 +37,8 @@ public class HarvestModClient implements ClientModInitializer {
         public boolean enabled = true;
     }
 
+    private BlockPos pendingPos = null;
+    private Direction pendingFace = null;
     public final KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("clientharvest", "general"));
 
     @Override
@@ -59,6 +64,23 @@ public class HarvestModClient implements ClientModInitializer {
                     );
                 }
             }
+            if (pendingPos == null) return;
+            if (client.gameMode == null || client.player == null) return;
+
+            BlockHitResult placeHit = new BlockHitResult(
+                    client.player.position(),
+                    pendingFace,
+                    pendingPos,
+                    false
+            );
+
+            client.gameMode.useItemOn(
+                    client.player,
+                    InteractionHand.MAIN_HAND,
+                    placeHit
+            );
+
+            pendingPos = null;
         });
     }
 
@@ -73,16 +95,49 @@ public class HarvestModClient implements ClientModInitializer {
         return false;
     }
 
+    public void clientTick() {
+        if (pendingPos == null) return;
+        if (client.gameMode == null || client.player == null) return;
+        BlockHitResult placeHit = new BlockHitResult(
+                client.player.position(),
+                pendingFace,
+                pendingPos,
+                false
+        );
+        client.gameMode.useItemOn(
+                client.player,
+                InteractionHand.MAIN_HAND,
+                placeHit
+        );
+        pendingPos = null;
+    }
+
     public InteractionResult onBlockUse(Player player, Level level, InteractionHand hand, BlockHitResult hitResult) {
+        if (!level.isClientSide()) return InteractionResult.PASS;
         if (!enabled) return InteractionResult.PASS;
         if (client.gameMode == null) return InteractionResult.PASS;
-        BlockState state = level.getBlockState(hitResult.getBlockPos());
+        if (hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
+        BlockPos pos = hitResult.getBlockPos();
+        BlockState state = level.getBlockState(pos);
         if (!isMature(state)) return InteractionResult.PASS;
-        client.gameMode.startDestroyBlock(
-                hitResult.getBlockPos(),
-                hitResult.getDirection()
-        );
-        return InteractionResult.SUCCESS;
+
+        ItemStack placeItem = new ItemStack(state.getBlock().asItem());
+        if (player.getMainHandItem().getItem() != placeItem.getItem()) {
+            for (int i = 0; i < 9; i++) {
+                ItemStack stack = player.getInventory().getItem(i);
+                if (!stack.isEmpty() && stack.getItem() == placeItem.getItem()) {
+                    player.getInventory().setSelectedSlot(i);
+                    break;
+                }
+            }
+        }
+
+        client.gameMode.startDestroyBlock(pos, hitResult.getDirection());
+
+        pendingPos = pos;
+        pendingFace = hitResult.getDirection();
+
+        return InteractionResult.CONSUME;
     }
 
     private static void loadConfig() {
