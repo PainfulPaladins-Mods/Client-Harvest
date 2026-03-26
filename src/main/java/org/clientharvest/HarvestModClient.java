@@ -10,6 +10,7 @@ import net.minecraft.world.level.block.CropBlock;
 import net.minecraft.world.level.block.NetherWartBlock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.ToggleKeyMapping;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionHand;
@@ -34,14 +35,14 @@ public class HarvestModClient implements ClientModInitializer {
         public boolean enabled = true;
     }
 
-    public final KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("clientharvest", "general"));
+    public final ToggleKeyMapping.Category category = ToggleKeyMapping.Category.register(Identifier.fromNamespaceAndPath("clientharvest", "general"));
 
     @Override
     public void onInitializeClient() {
         client = Minecraft.getInstance();
         loadConfig();
         UseBlockCallback.EVENT.register(this::onBlockUse);
-        KeyMapping toggleKey = (KeyMapping) KeyMappingHelper.registerKeyMapping(
+        KeyMapping toggleKey = (ToggleKeyMapping) KeyMappingHelper.registerKeyMapping(
                 new KeyMapping(
                         "key.clientharvest.toggle",
                         GLFW.GLFW_KEY_G,
