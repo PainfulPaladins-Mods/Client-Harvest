@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.entity.animal.allay.Allay;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.CocoaBlock;
@@ -21,6 +22,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
+import net.minecraft.world.phys.Vec3;
 import org.lwjgl.glfw.GLFW;
 import java.io.File;
 import java.io.FileReader;
@@ -31,12 +33,15 @@ import com.google.gson.GsonBuilder;
 public class HarvestModClient implements ClientModInitializer {
     public static Minecraft client;
     public static boolean enabled = true;
+    public static boolean backslot = true;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final File CONFIG_FILE = new File("config/clientharvest.json");
     public static class Config {
         public boolean enabled = true;
+        public boolean backslot = true;
     }
 
+    private int prevslot = 0;
     private BlockPos pendingPos = null;
     private Direction pendingFace = null;
     public final KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("clientharvest", "general"));
@@ -53,6 +58,7 @@ public class HarvestModClient implements ClientModInitializer {
                         category
                 )
         );
+
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (toggleKey.consumeClick()) {
                 enabled = !enabled;
@@ -64,23 +70,7 @@ public class HarvestModClient implements ClientModInitializer {
                     );
                 }
             }
-            if (pendingPos == null) return;
-            if (client.gameMode == null || client.player == null) return;
-
-            BlockHitResult placeHit = new BlockHitResult(
-                    client.player.position(),
-                    pendingFace,
-                    pendingPos,
-                    false
-            );
-
-            client.gameMode.useItemOn(
-                    client.player,
-                    InteractionHand.MAIN_HAND,
-                    placeHit
-            );
-
-            pendingPos = null;
+            clientTick();
         });
     }
 
@@ -99,7 +89,7 @@ public class HarvestModClient implements ClientModInitializer {
         if (pendingPos == null) return;
         if (client.gameMode == null || client.player == null) return;
         BlockHitResult placeHit = new BlockHitResult(
-                client.player.position(),
+                Vec3.atCenterOf(pendingPos),
                 pendingFace,
                 pendingPos,
                 false
@@ -110,17 +100,20 @@ public class HarvestModClient implements ClientModInitializer {
                 placeHit
         );
         pendingPos = null;
+        if (backslot) client.player.getInventory().setSelectedSlot(prevslot);
     }
 
     public InteractionResult onBlockUse(Player player, Level level, InteractionHand hand, BlockHitResult hitResult) {
         if (!level.isClientSide()) return InteractionResult.PASS;
         if (!enabled) return InteractionResult.PASS;
         if (client.gameMode == null) return InteractionResult.PASS;
+
         if (hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
         BlockPos pos = hitResult.getBlockPos();
         BlockState state = level.getBlockState(pos);
         if (!isMature(state)) return InteractionResult.PASS;
 
+        prevslot = player.getInventory().getSelectedSlot();
         ItemStack placeItem = new ItemStack(state.getBlock().asItem());
         if (player.getMainHandItem().getItem() != placeItem.getItem()) {
             for (int i = 0; i < 9; i++) {
@@ -133,10 +126,8 @@ public class HarvestModClient implements ClientModInitializer {
         }
 
         client.gameMode.startDestroyBlock(pos, hitResult.getDirection());
-
         pendingPos = pos;
         pendingFace = hitResult.getDirection();
-
         return InteractionResult.CONSUME;
     }
 
@@ -151,6 +142,7 @@ public class HarvestModClient implements ClientModInitializer {
             reader.close();
             if (config != null) {
                 enabled = config.enabled;
+                backslot = config.backslot;
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -162,6 +154,7 @@ public class HarvestModClient implements ClientModInitializer {
             CONFIG_FILE.getParentFile().mkdirs();
             Config config = new Config();
             config.enabled = enabled;
+            config.backslot = backslot;
             FileWriter writer = new FileWriter(CONFIG_FILE);
             GSON.toJson(config, writer);
             writer.close();
