@@ -42,7 +42,7 @@ public class HarvestModClient implements ClientModInitializer {
         client = Minecraft.getInstance();
         loadConfig();
         UseBlockCallback.EVENT.register(this::onBlockUse);
-        KeyMapping toggleKey = (ToggleKeyMapping) KeyMappingHelper.registerKeyMapping(
+        KeyMapping toggleKey = KeyMappingHelper.registerKeyMapping(
                 new KeyMapping(
                         "key.clientharvest.toggle",
                         GLFW.GLFW_KEY_G,
