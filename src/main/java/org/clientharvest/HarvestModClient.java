@@ -3,20 +3,21 @@ package org.clientharvest;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.CocoaBlock;
-import net.minecraft.block.CropBlock;
-import net.minecraft.block.NetherWartBlock;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.world.World;
-import net.minecraft.text.Text;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.CocoaBlock;
+import net.minecraft.world.level.block.CropBlock;
+import net.minecraft.world.level.block.NetherWartBlock;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.ToggleKeyMapping;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.level.Level;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 
 import org.lwjgl.glfw.GLFW;
 import java.io.File;
@@ -26,34 +27,35 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 public class HarvestModClient implements ClientModInitializer {
-    public static MinecraftClient client;
+    public static Minecraft client;
     public static boolean enabled = true;
-    private static KeyBinding toggleKey;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final File CONFIG_FILE = new File("config/clientharvest.json");
     public static class Config {
         public boolean enabled = true;
     }
 
-    public final KeyBinding.Category category = KeyBinding.Category.create(Identifier.of("clientharvest", "general"));
+    public final ToggleKeyMapping.Category category = ToggleKeyMapping.Category.register(Identifier.fromNamespaceAndPath("clientharvest", "general"));
 
     @Override
     public void onInitializeClient() {
-        client = MinecraftClient.getInstance();
+        client = Minecraft.getInstance();
         loadConfig();
         UseBlockCallback.EVENT.register(this::onBlockUse);
-        toggleKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.clientharvest.toggle",
-                GLFW.GLFW_KEY_G,
-                category
-        ));
+        KeyMapping toggleKey = KeyMappingHelper.registerKeyMapping(
+                new KeyMapping(
+                        "key.clientharvest.toggle",
+                        GLFW.GLFW_KEY_G,
+                        category
+                )
+        );
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            while (toggleKey.wasPressed()) {
+            while (toggleKey.consumeClick()) {
                 enabled = !enabled;
                 saveConfig();
                 if (client.player != null) {
-                    client.inGameHud.setOverlayMessage(
-                            Text.literal("[Client Harvest] " + (enabled ? "ON" : "OFF")),
+                    client.gui.setOverlayMessage(
+                            Component.literal("[Client Harvest] " + (enabled ? "ON" : "OFF")),
                             false
                     );
                 }
@@ -63,25 +65,25 @@ public class HarvestModClient implements ClientModInitializer {
 
     private static boolean isMature(BlockState state) {
         if (state.getBlock() instanceof CocoaBlock) {
-            return state.get(CocoaBlock.AGE) >= CocoaBlock.MAX_AGE;
+            return state.getValue(CocoaBlock.AGE) >= CocoaBlock.MAX_AGE;
         } else if (state.getBlock() instanceof CropBlock cropBlock) {
-            return cropBlock.isMature(state);
+            return cropBlock.isMaxAge(state);
         } else if (state.getBlock() instanceof NetherWartBlock) {
-            return state.get(NetherWartBlock.AGE) >= 3;
+            return state.getValue(NetherWartBlock.AGE) >= 3;
         }
         return false;
     }
 
-    public ActionResult onBlockUse(PlayerEntity player, World world, Hand hand, BlockHitResult hitResult) {
-        if (!enabled) return ActionResult.PASS;
-        if (client.interactionManager == null) return ActionResult.PASS;
-        BlockState state = world.getBlockState(hitResult.getBlockPos());
-        if (!isMature(state)) return ActionResult.PASS;
-        client.interactionManager.attackBlock(
+    public InteractionResult onBlockUse(Player player, Level level, InteractionHand hand, BlockHitResult hitResult) {
+        if (!enabled) return InteractionResult.PASS;
+        if (client.gameMode == null) return InteractionResult.PASS;
+        BlockState state = level.getBlockState(hitResult.getBlockPos());
+        if (!isMature(state)) return InteractionResult.PASS;
+        client.gameMode.startDestroyBlock(
                 hitResult.getBlockPos(),
-                hitResult.getSide()
+                hitResult.getDirection()
         );
-        return ActionResult.SUCCESS;
+        return InteractionResult.SUCCESS;
     }
 
     private static void loadConfig() {
