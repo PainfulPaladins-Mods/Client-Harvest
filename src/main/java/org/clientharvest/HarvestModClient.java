@@ -54,7 +54,7 @@ public class HarvestModClient implements ClientModInitializer {
                 enabled = !enabled;
                 saveConfig();
                 if (client.player != null) {
-                    client.gui.setOverlayMessage(
+                    client.gui.hud.setOverlayMessage(
                             Component.literal("[Client Harvest] " + (enabled ? "ON" : "OFF")),
                             false
                     );
