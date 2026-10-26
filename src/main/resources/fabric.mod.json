@@ -1,17 +1,18 @@
 {
   "schemaVersion": 1,
-  "id": "clientharvest",
+  "id": "clientharvestupdated",
   "version": "${version}",
-  "name": "ClientHarvest",
+  "name": "ClientHarvestUpdated",
   "description": "Right Click Harvest on client side! Replants the seeds only if you are holding them in your main hand.",
   "icon": "icon.jpeg",
   "authors": [
-    "PainfulPaladins"
+    "PainfulPaladins",
+    "darka277"
   ],
   "contact": {
-    "homepage": "https://modrinth.com/mod/clientharvest/",
-    "sources": "https://github.com/PainfulPaladins-Mods/Client-Harvest",
-    "issues": "https://github.com/PainfulPaladins-Mods/Client-Harvest/issues"
+    "homepage": "https://modrinth.com/mod/clientharvestupdated/",
+    "sources": "https://github.com/david-0609/Client-Harvest",
+    "issues": "https://github.com/david-0609/Client-Harvest/issues"
   },
   "license": "MIT",
   "environment": "client",
