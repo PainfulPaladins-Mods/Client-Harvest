@@ -19,7 +19,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -45,7 +45,7 @@ public class HarvestModClient implements ClientModInitializer {
         KeyMapping toggleKey = KeyMappingHelper.registerKeyMapping(
                 new KeyMapping(
                         "key.clientharvest.toggle",
-                        GLFW.GLFW_KEY_G,
+                        InputConstants.KEY_G,
                         category
                 )
         );
